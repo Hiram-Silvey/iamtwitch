@@ -1,41 +1,48 @@
 # Larger LSTM Network to Generate Text for Alice in Wonderland
-import numpy, os
+import sys, os, random, numpy
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import LSTM
+from keras.layers import Dense, Dropout, LSTM
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
-from IPython import embed
-# load ascii text and covert to lowercase
+
+SEQ_LEN = 100
+MAX_BYTES = 200000
+
+# load twitch chat as individual bytes
 data_dir = "data/"
 files = [f for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f))]
-raw_text = ""
+raw = []
+curr_len = 0
 for f in files:
     with open(data_dir+f, 'r') as op_f:
         for line in op_f:
-            raw_text += line.split('\t')[2]
-    if len(raw_text) > 150000:
+            curr_bytes = line.split('\t')[2].encode()
+            raw.append(curr_bytes)
+            curr_len += len(curr_bytes)
+            if curr_len >= MAX_BYTES:
+                break
+    if curr_len >= MAX_BYTES:
         break
-raw_text = raw_text.encode()
-charbytes = {}
-for byte in raw_text:
-    charbytes[byte] = charbytes.get(byte, 0) + 1
+    # append a null byte to signal change in data
+    raw.append(b'\x00')
+raw = b''.join(raw)
 # create mapping of unique chars to integers
-chars = sorted(charbytes, key=charbytes.get, reverse=True)
-char_to_int = dict((c, i) for i, c in enumerate(chars[:256]))
+chars = set(list(raw))
+char_to_int = dict((c, i) for i, c in enumerate(chars))
 # summarize the loaded data
-n_chars = len(raw_text)
+n_chars = len(raw)
 n_vocab = len(chars)
-print("Total Characters: ", n_chars)
-print("Total Vocab: ", n_vocab)
+print("Total characters: ", n_chars)
+print("Total vocab: ", n_vocab)
 # prepare the dataset of input to output pairs encoded as integers
-seq_length = 100
 dataX = []
 dataY = []
-for i in range(0, n_chars - seq_length, 1):
-    seq_in = raw_text[i:i + seq_length]
-    seq_out = raw_text[i + seq_length]
+n_seqs = n_chars-SEQ_LEN
+for i in random.sample(xrange(0, n_seqs), n_seqs):
+    seq_in = raw[i:i+SEQ_LEN]
+    if b'\x00' in seq_in:
+        continue
+    seq_out = raw[i+SEQ_LEN]
     dataX.append([char_to_int[char] for char in seq_in])
     dataY.append(char_to_int[seq_out])
 n_patterns = len(dataX)
