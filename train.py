@@ -38,7 +38,7 @@ print("Total vocab: ", n_vocab)
 dataX = []
 dataY = []
 n_seqs = n_chars-SEQ_LEN
-for i in random.sample(xrange(0, n_seqs), n_seqs):
+for i in random.sample(range(0, n_seqs), n_seqs):
     seq_in = raw[i:i+SEQ_LEN]
     if b'\x00' in seq_in:
         continue
@@ -48,7 +48,7 @@ for i in random.sample(xrange(0, n_seqs), n_seqs):
 n_patterns = len(dataX)
 print("Total Patterns: ", n_patterns)
 # reshape X to be [samples, time steps, features]
-X = numpy.reshape(dataX, (n_patterns, seq_length, 1))
+X = numpy.reshape(dataX, (n_patterns, SEQ_LEN, 1))
 # normalize
 X = X / float(n_vocab)
 # one hot encode the output variable
